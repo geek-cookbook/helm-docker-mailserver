@@ -1,7 +1,7 @@
 name: .penguin
 
 readme:
-  template: generic
+  template: chart
   update: true
   sections:
     - title: What is this?

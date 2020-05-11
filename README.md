@@ -30,21 +30,15 @@
 Use helm to add the repo:
 
 ```
-helm repo add geek-cookbook \
-  https://geek-cookbook.github.io/charts/
+helm repo add geek-cookbook https://geek-cookbook.github.io/charts/
 ```
 
-Then simply install using helm:
+Then simply install using helm, for example
 
 ```
-helm upgrade --install --namespace docker-mailserver docker-mailserver \
-  geek-cookbook
+kubectl create namespace docker-mailserver
+helm upgrade --install --namespace docker-mailserver geek-cookbook/docker-mailserver
 ```
-
-<aside class="notice">
-srsly bro? Why such a long name? Because we've moved from a mono-repo for helm charts, to a repo per-chart. This simplifies PR dependencies, and make it easier to track only the charts you're interested
-in, by watching each repo
-</aside>
 
 
 

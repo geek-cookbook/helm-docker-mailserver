@@ -1,35 +1,30 @@
 ---
 image:
   # image.name is the name of the container image to use. Refer to https://hub.docker.com/r/tvial/docker-mailserver
-  name: "tvial/docker-mailserver"
+  name: "mailserver/docker-mailserver"
   # image.tag is the tag of the container image to use. Refer to https://hub.docker.com/r/tvial/docker-mailserver
-  tag: "release-v6.1.0"
+  tag: "8.0.1"
   pullPolicy: "IfNotPresent"
 
 initContainer:
   image:
-    # image.name is the name of the container image to use. Refer to https://hub.docker.com/r/tvial/docker-mailserver
     name: "busybox"
-    # image.tag is the tag of the container image to use. Refer to https://hub.docker.com/r/tvial/docker-mailserver
-    tag: "1.28"
+    tag: "stable"
     pullPolicy: "IfNotPresent"
 
-  # These resources refer specifically to the _init container_, which needs only _puny_ resources, since all it does
-  
+  # These resources refer specifically to the _init container_, which needs only _puny_ resources,
+  # since all it does is copy the config into place
   resources:
     requests:
-      ## How much CPU this container is expected to need
       cpu: "10m"
-      ## How much memory this container is expected to need.
-      ## Reduce these at requests your peril - too few resources can cause daemons (i.e., clamd) to fail, or timeouts to occur.
-      ## A test installation with clamd running was killed when it consumed 1437Mi (which is why this value was increased to 1536)
       memory: "32Mi"
     limits:
-      ## The max CPU this container should be allowed to use
       cpu: "50m"
-      ## The max memory this container should be allowed to use. Note: If a container exceeds its memory limit,
-      ## it may terminated.
       memory: "64Mi"
+
+  containerSecurityContext:
+    readOnlyRootFilesystem: true
+    privileged: false
 
 serviceAccount:
   create: "true"
@@ -76,18 +71,8 @@ demoMode:
 # spfTestsDisabled will ignore all SPF-based spam tests, in the event that you cannot obtain valid source IP details on ingress emails
 spfTestsDisabled: false
 
-# If you're using David's hacked-up automatic external haproxy design, then enable
-# the following to launch the appropriate containers to call back to the haproxy webhook
-# Details at https://www.funkypenguin.co.nz/project/a-simple-free-load-balancer-for-your-kubernetes-cluster/ 
-poorMansK8sLb:
-  # poorMansK8sLb.enabled will include containers to call a webhook on an external HAProxy instance
-  enabled: false
-  # If haproxy is in external-auto mode, specify the webhook URL and secret used to update haproxy config
-  # Example implementation at https://www.funkypenguin.co.nz/project/a-simple-free-load-balancer-for-your-kubernetes-cluster/
-  # poorMansK8sLb.webhookUrl is the URL to call to update a webhook on a remote HAProxy instance
-  webhookUrl: 
-  # poorMansK8sLb.webhookSecret is the secret to be included in the webhook call (above)
-  webhookSecret:
+# List extra RBL domains to use for hard reject filtering
+rblRejectDomains: []
 
 # List all the domains to be used below - this is necessary to correctly configure DKIM keys for email signing
 # domains is the list of domains to be served by your docker-mailserver instance
@@ -103,7 +88,10 @@ livenessTests:
     - "clamscan /tmp/docker-mailserver/TrustedHosts"
 
 pod:
-  # pod.dockermailserver section refers to the configuration of the docker-mailserver pod itself. Note that teh many environment variables which define the behaviour of docker-mailserver are configured here
+  # pod.dockermailserver section refers to the configuration of the docker-mailserver pod itself. 
+
+  # Note that the many environment variables which define the behaviour of docker-mailserver are configured here
+  # See https://github.com/docker-mailserver/docker-mailserver/blob/master/ENVIRONMENT.md for details
   dockermailserver:
 
     ## Host networking requested for this pod. Use the host’s network namespace. If this option is set, the ports that
@@ -118,13 +106,13 @@ pod:
 
     ## Update strategy - only really applicable for deployments with RWO PVs attached
     ## If replicas = 1, an update can get "stuck", as the previous pod remains attached to the 
-    ## PV, and the "incoming" pod can never start. Changing the strategy to "Recreate" will 
+    ## PV, and the "incoming" pod can never start. Setting the strategy to "Recreate" (our default) will 
     ## terminate the single previous pod, so that the new, incoming pod can attach to the PV    
-    strategy: {}
+    strategy:
       # rollingUpdate:
       #   maxSurge: 1
       #   maxUnavailable: 1
-      # type: "RollingUpdate"
+      type: "Recreate"
 
     ## The following variables affect the behaviour of docker-mailserver
     ## See https://github.com/tomav/docker-mailserver#environment-variables for details
@@ -177,7 +165,7 @@ pod:
     enable_fetchmail: 0
     fetchmail_poll: 300
     enable_ldap: 
-    ldap_start_tls:
+    ldap_start_tls: # MUST BE "yes" or "no" - quoted strings
     ldap_server_host: 
     ldap_search_base:
     ldap_bind_dn:
@@ -187,10 +175,13 @@ pod:
     ldap_query_filter_alias:
     ldap_query_filter_domain:
     dovecot_tls:
+    dovecot_ldap_version: 3
+    dovecot_default_pass_scheme:
+    dovecot_auth_bind:
     dovecot_user_filter:
-    dovecot_user_attr:
+    dovecot_user_attrs:
     dovecot_pass_filter:
-    dovecot_pass_attr:
+    dovecot_pass_attrs:
     enable_postgrey: 0
     postgrey_delay: 300
     postgrey_max_age: 35
@@ -217,12 +208,19 @@ pod:
     relay_user:
     relay_password:
 
+    securityContext:
+      runAsUser: 10001
+      runAsGroup: 10001
+
+    containerSecurityContext:
+      readOnlyRootFilesystem: false # incompatible with the way docker-mailserver works
+      privileged: false
+
 service:
   ## What scope the service should be exposed in. One of:
   ## - LoadBalancer (to the world)
   ## - ClusterIP (to the cluster)
-  ## - NodePort (to the world, in a custom way)
-  type: "NodePort"
+  type: "LoadBalancer"
   ## If there is a port associated with a given service, expose it here.
   # port:
   ## If there is a particular IP that should be used for the service, specify it here.
@@ -241,22 +239,17 @@ service:
       - "0.0.0.0/0"
     ## If there is a Hostname associated with this site, add it here and it will be rendered in the documentation.
     # hostName:
-  # service.nodePort is an array of ports exposed if we are using nodeport for our services (an an external, non-cluster LB)
-  nodePort:
-    smtp: 30025
-    pop3: 30110
-    imap: 30143
-    smtps: 30465
-    submission: 30587
-    imaps: 30993
-    pop3s: 30995
-
   annotations: {}
 
-## How many versions of the deployment to run on kubernetes
-## Default: 2
 deployment:
+
+  ## How many versions of the deployment to run on kubernetes
+  ## Default: 2
   replicas: 1
+
+  ## Add annotations to the deployment
+  ## Useful for using something like stash to backup data (https://stash.run/docs/v0.9.0-rc.0/guides/latest/auto-backup/workload/)
+  annotations: {}  
 
 ## More generally, a "request" can be thought of as "how much is this container expected to need usually". it should be
 ## possible to burst outside these constraints (during a high load operation). However, Kubernetes may kill the pod
@@ -339,13 +332,13 @@ rainloop:
 
     ## Update strategy - only really applicable for deployments with RWO PVs attached
     ## If replicas = 1, an update can get "stuck", as the previous pod remains attached to the 
-    ## PV, and the "incoming" pod can never start. Changing the strategy to "Recreate" will 
-    ## terminate the single previous pod, so that the new, incoming pod can attach to the PV    
-    strategy: {}
+    ## PV, and the "incoming" pod can never start. Setting the strategy to "Recreate" (our default) will 
+    ## terminate the single previous pod, so that the new, incoming pod can attach to the PV.    
+    strategy:
       # rollingUpdate:
       #   maxSurge: 1
       #   maxUnavailable: 1
-      # type: "RollingUpdate"
+      type: "Recreate"
           
   persistence:
     size: "1Gi"
@@ -369,7 +362,7 @@ rainloop:
 ## These values are for the haproxy sub-chart
 haproxy:
   # haproxy.enabled will deploy an haproxy sub-chart, configured for the TCP ports used by docker-mailserver
-  enabled: true
+  enabled: false
   controller:
     replicaCount: 1
     kind: "Deployment"
@@ -397,7 +390,3 @@ haproxy:
   # of your HAProxy instance
   # haproxy.trustedNetworks is the list of sources (in CIDR format, space-separated) to permit haproxy PROXY protocol from
   trustedNetworks: "10.0.0.0/8 192.168.0.0/16 172.16.0.0/16"
-
-  # 10 is the default, but explicitly setting this value avoids a CI error when running the generated manifest through kubeval
-  # Will be fixed with an upstream PR
-  revisionHistoryLimit: 10

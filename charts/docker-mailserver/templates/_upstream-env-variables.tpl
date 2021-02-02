@@ -18,7 +18,7 @@ We list them here (and include this template in deployment.yaml) to keep deploym
 - name: SMTP_ONLY
   value: {{ .Values.pod.dockermailserver.smtp_only | quote }}
 - name: SSL_TYPE
-  value: {{ default "manual" .Values.pod.dockermailserver.ssl_type | quote }}
+  value: {{ .Values.pod.dockermailserver.ssl_type | quote }}
 - name: SSL_CERT_PATH
   value: {{ default "/tmp/ssl/tls.crt" .Values.pod.dockermailserver.ssl_cert_path | quote }}   
 - name: SSL_KEY_PATH
@@ -89,14 +89,20 @@ We list them here (and include this template in deployment.yaml) to keep deploym
   value: {{ .Values.pod.dockermailserver.ldap_query_filter_domain | quote }}
 - name: DOVECOT_TLS
   value: {{ .Values.pod.dockermailserver.dovecot_tls | quote }}
+- name: DOVECOT_LDAP_VERSION
+  value: {{ .Values.pod.dockermailserver.dovecot_ldap_version | quote }}
+- name: DOVECOT_DEFAULT_PASS_SCHEME
+  value: {{ .Values.pod.dockermailserver.dovecot_default_pass_scheme | quote }}
+- name: DOVECOT_AUTH_BIND
+  value: {{ .Values.pod.dockermailserver.dovecot_auth_bind | quote }}
 - name: DOVECOT_USER_FILTER
   value: {{ .Values.pod.dockermailserver.dovecot_user_filter | quote }}
-- name: DOVECOT_USER_ATTR
-  value: {{ .Values.pod.dockermailserver.dovecot_user_attr | quote }}
+- name: DOVECOT_USER_ATTRS
+  value: {{ .Values.pod.dockermailserver.dovecot_user_attrs | quote }}
 - name: DOVECOT_PASS_FILTER
   value: {{ .Values.pod.dockermailserver.dovecot_pass_filter | quote }}
-- name: DOVECOT_PASS_ATTR
-  value: {{ .Values.pod.dockermailserver.dovecot_pass_attr | quote }}
+- name: DOVECOT_PASS_ATTRS
+  value: {{ .Values.pod.dockermailserver.dovecot_pass_attrs | quote }}
 - name: ENABLE_POSTGREY
   value: {{ .Values.pod.dockermailserver.enable_postgrey | quote }}
 - name: POSTGREY_DELAY

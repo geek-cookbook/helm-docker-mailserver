@@ -6,7 +6,7 @@ entries:
         - Breaking : Standardized app labels to app.kubernetes.io/name for Istio workload/Cilium compatibility
     apiVersion: v2
     appVersion: 11.0.0
-    created: "2022-05-06T03:59:54.45694668Z"
+    created: "2022-08-08T16:19:51.553124976Z"
     dependencies:
     - alias: haproxy
       condition: haproxy.enabled
@@ -14,7 +14,7 @@ entries:
       repository: https://haproxytech.github.io/helm-charts
       version: 1.21.1
     description: A fullstack but simple mailserver (smtp, imap, antispam, antivirus, ssl...) using Docker.
-    digest: ef72814a9929a7c16dc7d4c3497e2ffe05a603d46a2a602865a045ca35ebc506
+    digest: abcb1e71b4d39dda802f8a88fecbeff00f6ec3bf9d629639addd35ac0754e2b6
     home: https://github.com/funkypenguin/helm-docker-mailserver
     icon: https://avatars.githubusercontent.com/u/76868633?s=400&v=4
     keywords:
@@ -30,6 +30,6 @@ entries:
     sources:
     - https://github.com/docker-mailserver/docker-mailserver-helm
     urls:
-    - https://github.com/geek-cookbook/helm-docker-mailserver/releases/download/docker-mailserver-1.0.0/docker-mailserver-1.0.0.tgz
-    version: 1.0.0
-generated: "2022-05-06T03:59:54.185036159Z"
+    - https://github.com/geek-cookbook/helm-docker-mailserver/releases/download/docker-mailserver-1.0.1/docker-mailserver-1.0.1.tgz
+    version: 1.0.1
+generated: "2022-08-08T16:19:51.360411296Z"
